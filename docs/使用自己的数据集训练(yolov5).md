@@ -10,7 +10,7 @@
 
 数据集文件结构
 
-```powershell
+```shell
 /
 ├─robomaster_Central China Regional Competition
 │  ├─image
@@ -101,7 +101,7 @@ optional arguments:
 
 2. 数据集的位置默认为脚本文件**当前的目录**，需要按照如下**目录树安排**
 
-   ```powershell
+   ```shell
    /
    ├─DJI_Data
    │  ├─images
@@ -112,7 +112,7 @@ optional arguments:
 
 3. 输出目录选择一个空的目录，例如`./DJI`，脚本会自动创建好yolo训练的目录结构，例如
 
-   ```powershell
+   ```shell
    DJI/
       ├─images
       │  ├─test
