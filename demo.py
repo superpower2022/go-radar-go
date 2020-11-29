@@ -32,7 +32,7 @@ import math
 ############################################
 
 #路径
-cur_dir = '/home/truth/project/radar/'
+cur_dir = 'D:/P2/202012/WeatherReport/go-radar-go/'
 
 '''
 相机参数 size画面尺寸
@@ -48,7 +48,7 @@ cameraMatrix = np.array(
 distCoeffs =  np.array( [-0.3278216258938886, 0.06120460217698008,
               0.003434275536437622, 0.009257102247244872,
               0.02485049439840001])
-device_ = ''
+device_ = '0'
 
 #权重
 weights = cur_dir + 'yolov5/weights/last_yolov5s_0722.pt'
@@ -70,6 +70,8 @@ video_in = cur_dir + 'data/t1.mp4'
 map_dir = cur_dir + 'pnp/map2019.png'
 classes = ''
 agnostic = ''
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
 def adjustImgSize(im0s,imgsz,device):
     '''
@@ -217,6 +219,11 @@ def get3Dposition(bbox_clockwise):
 if __name__ == "__main__":
     ############################初始化步骤###################################
     #载入小地图
+    '''
+    flag = torch.cuda.is_available()
+    print(flag)
+    exit(0)
+    '''
     lm = little_map(map_dir)
     # Initialize 找GPU
     device = torch_utils.select_device(device_)
@@ -225,9 +232,10 @@ if __name__ == "__main__":
     # Load model载入模型
     models = attempt_load(weights, map_location=device)  # load FP32 model
     imgsz = check_img_size(imgsz, s=models.stride.max())  # check img_size
+    
     if half:
         models.half()  # to FP16
-
+    
     # Get names and colors获得类名与颜色
     names = models.module.names if hasattr(models, 'module') else models.names
     colors = [[random.randint(0, 255) for _ in range(3)] for _ in range(len(names))]
