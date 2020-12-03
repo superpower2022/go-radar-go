@@ -46,7 +46,7 @@ def mvToImgDir(List, img_path, flag):
     for file in List:
         from_img = imgs_path + file + '.jpg'
         to_img = path + file + '.jpg'
-        shutil.move(from_img, to_img)
+        shutil.copy(from_img, to_img)
 
 
 def mvToLabelDir(List, label_path, flag):
@@ -73,7 +73,7 @@ def mvToLabelDir(List, label_path, flag):
             print(from_label, 'Not Found!')
             continue
         to_label = path + file + '.txt'
-        shutil.move(from_label, to_label)
+        shutil.copy(from_label, to_label)
 
 
 def writeToFile(List, flag):
@@ -101,8 +101,8 @@ if __name__ == '__main__':
         description='This is program of setting RATIO of DATASET for yolo-v5.'
                     'Here we will have train, valid and test sets.'
                     '!!For PATH, we auto add / at the end!!')
-    parser.add_argument('-train', type=int, default=70, help='train ratio, default with 70')
-    parser.add_argument('-valid', type=int, default=20, help='valid ratio, default with 20')
+    parser.add_argument('-train', type=int, default=85, help='train ratio, default with 85')
+    parser.add_argument('-valid', type=int, default=10, help='valid ratio, default with 10')
     parser.add_argument('-data_path', type=str, default='.', help='root path of DATASET, default with "./"')
     parser.add_argument('-out_path', type=str, help='move data to DataSets path', required=True)
     opt = parser.parse_args()

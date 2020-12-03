@@ -42,31 +42,18 @@ def parse_xml(xml):
         objymax = float(object.find('bndbox').find('ymax').text)
         objdiff = object.find('difficulty')
 
-        # DO NOT over boundary
-        if objxmin < 0:
-            objxmin = 0.0
-        elif objxmin > imgwidth:
-            objxmin = imgwidth
+        # drop over boundary
+        if (objxmin < 0 or objxmin > imgwidth) or \
+                (objxmax < 0 or objxmax > imgwidth) or \
+                (objymin < 0 or objymin > imgheight) or \
+                (objymax < 0 or objymax > imgheight):
+            diff_skip_cnt += 1
+            continue
 
-        if objxmax < 0:
-            objxmax = 0.0
-        elif objxmax > imgwidth:
-            objxmax = imgwidth
-
-        if objymin < 0:
-            objymin = 0.0
-        elif objymin > imgwidth:
-            objymin = imgwidth
-
-        if objymax < 0:
-            objymax = 0.0
-        elif objymax > imgheight:
-            objymax = imgheight
-
-        # Skip the Obscuration > 50%
+        # Skip the Obscuration > 20%
         if objdiff is not None:
             objdiff = int(objdiff.text)
-            if objdiff == 2:
+            if objdiff == 1:
                 diff_skip_cnt += 1
                 continue
 
@@ -76,10 +63,8 @@ def parse_xml(xml):
             classindex = 0
         elif objname == 'watcher':
             classindex = 1
-        elif objname == 'ignore':
-            classindex = 2
         elif objname == 'armor':
-            classindex = 3
+            classindex = 2
 
         if classindex == -1:
             objclass_skip_cnt += 1

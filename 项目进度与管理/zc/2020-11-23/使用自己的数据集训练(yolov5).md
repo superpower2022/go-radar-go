@@ -53,7 +53,7 @@ optional arguments:
 1. 输入存放xml文件根目录，例如`./DJI_ROCO/robomaster_Final_Tournament/image_annotation`（需要注意的是目录**不能有空格**）
 2. 输入存放txt文件的根目录，例如`./DJI_Data/annotations`（同样需要注意1.的问题）
 
-脚本会解析**4种object**，按照列表顺序为`['car', 'watcher', 'ignore', 'armor']`，即0，1，2，3的顺序
+脚本会解析**3种object**，按照列表顺序为`['car', 'watcher', 'armor']`，即0，1，2的顺序
 
 如果需要更改可以修改文件中如下的代码（需要与数据集存在的object对应）
 
@@ -65,10 +65,8 @@ if objname == 'car':
     classindex = 0
 elif objname == 'watcher':
     classindex = 1
-elif objname == 'ignore':
-    classindex = 2
 elif objname == 'armor':
-    classindex = 3
+    classindex = 2
 ...
 ```
 
@@ -97,7 +95,7 @@ optional arguments:
 
 处理逻辑为：
 
-1. 默认`train`的比例为70%，`valid`的比例为20%，`test`的比例为10%，需要更改只需改前两个比例
+1. 默认`train`的比例为85%，`valid`的比例为10%，`test`的比例为5%，需要更改只需改前两个比例
 
 2. 数据集的位置默认为脚本文件**当前的目录**，需要按照如下**目录树安排**
 

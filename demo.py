@@ -32,7 +32,7 @@ import math
 ############################################
 
 #路径
-cur_dir = '/home/truth/project/radar/'
+cur_dir = '/home/zc/go-radar-go/'
 
 '''
 相机参数 size画面尺寸
@@ -48,7 +48,7 @@ cameraMatrix = np.array(
 distCoeffs =  np.array( [-0.3278216258938886, 0.06120460217698008,
               0.003434275536437622, 0.009257102247244872,
               0.02485049439840001])
-device_ = ''
+device_ = '0'
 
 #权重
 weights = cur_dir + 'yolov5/weights/last_yolov5s_0722.pt'
@@ -267,8 +267,8 @@ if __name__ == "__main__":
     resize_ratio = show_width / fixed_width
 
     #输出带有框图记录的视频流
-    fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    out_2 = cv2.VideoWriter('map2019.avi', fourcc, 20.0, ( int(lm.get_width()*0.5),int(lm.get_height()*0.5)))
+    #fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    #out_2 = cv2.VideoWriter('map2019.avi', fourcc, 20.0, ( int(lm.get_width()*0.5),int(lm.get_height()*0.5)))
     ######################################################################
 
     bbox_tlwh  = [] ; bbox_xyxy  = []
@@ -290,9 +290,13 @@ if __name__ == "__main__":
             t1 = torch_utils.time_synchronized()
             #yolo目标检测
             bbox_xcycwh, cls_conf, cls_ids = detectPerFrame(im0s)
+            t2 = torch_utils.time_synchronized()
+            print('yolo:', t2 - t1, "s")
+
             #目标跟踪 output = [x1,y1,x2,y2,track_id]
             outputs,bbox_vxvy = my_deepsort.update(bbox_xcycwh, cls_conf, im0s)
-            t2 = torch_utils.time_synchronized()
+            t3 = torch_utils.time_synchronized()
+            print('deep:', t3 - t2, "s")
             #############################################################
 
             ########################计算每个装甲板的位姿信息########################
@@ -334,12 +338,12 @@ if __name__ == "__main__":
             center = getRectCenterpoint(bbox_xyxy_show)
             cur_pic = showLittleMap(lm, center, bbox_vxvy_show,identities,armor_color)
             #############################################################
-            t3 = torch_utils.time_synchronized()
-            print(t3 - t1, "s")
+            t4 = torch_utils.time_synchronized()
+            print('show:', t4 - t3, "s")
 
             cv.imshow('map', cur_pic)
             cv2.imshow("for_show", for_show)
-            out_2.write(cur_pic)
+            #out_2.write(cur_pic)
             cv2.waitKey(1)
         else:
             break
