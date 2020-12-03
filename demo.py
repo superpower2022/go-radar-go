@@ -32,7 +32,11 @@ import math
 ############################################
 
 #路径
+<<<<<<< HEAD
 cur_dir = '/home/zc/go-radar-go/'
+=======
+cur_dir = 'D:/P2/202012/WeatherReport/go-radar-go/'
+>>>>>>> bae516871e02ff5d84bad28bfdfb18ad44683849
 
 '''
 相机参数 size画面尺寸
@@ -70,6 +74,8 @@ video_in = cur_dir + 'data/t1.mp4'
 map_dir = cur_dir + 'pnp/map2019.png'
 classes = ''
 agnostic = ''
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
 def adjustImgSize(im0s,imgsz,device):
     '''
@@ -217,6 +223,11 @@ def get3Dposition(bbox_clockwise):
 if __name__ == "__main__":
     ############################初始化步骤###################################
     #载入小地图
+    '''
+    flag = torch.cuda.is_available()
+    print(flag)
+    exit(0)
+    '''
     lm = little_map(map_dir)
     # Initialize 找GPU
     device = torch_utils.select_device(device_)
@@ -225,9 +236,10 @@ if __name__ == "__main__":
     # Load model载入模型
     models = attempt_load(weights, map_location=device)  # load FP32 model
     imgsz = check_img_size(imgsz, s=models.stride.max())  # check img_size
+    
     if half:
         models.half()  # to FP16
-
+    
     # Get names and colors获得类名与颜色
     names = models.module.names if hasattr(models, 'module') else models.names
     colors = [[random.randint(0, 255) for _ in range(3)] for _ in range(len(names))]
