@@ -61,7 +61,7 @@
 
 
 
-3法结果图：
+3、算法结果图：
 ![结果图片](../images/camera2map_0.png)
 ![结果图片](../images/camera2map_1.png)
 ![结果图片](../images/camera2map_2.png)
