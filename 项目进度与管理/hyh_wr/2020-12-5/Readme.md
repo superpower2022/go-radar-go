@@ -49,7 +49,7 @@
   map.x = \frac{map.width}{2} + dx * distancey * \alpha
   $$
 
-2、遇到的问题：
+4、遇到的问题：
 
 1）摄像头本身的精度会造成一定程度上的偏差
 
@@ -61,7 +61,7 @@
 
 
 
-3、算法结果图：
+5、算法结果图：
 ![结果图片](../images/camera2map_0.png)
 ![结果图片](../images/camera2map_1.png)
 ![结果图片](../images/camera2map_2.png)
