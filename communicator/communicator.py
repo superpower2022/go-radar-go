@@ -89,4 +89,4 @@ if __name__ == "__main__":
     data_list = [4, [[1, 3], [3, 4], [5, 6], [7, 8], [0, 0], [0, 0], [0, 0], [0, 0]],
                  4, [[1, 2], [3, 4], [5, 6], [7, 8], [0, 0], [0, 0], [0, 0], [0, 0]]]
     com = Communicator()
-    com.send(data_list, MINIMAP)
+    com.send(data_list, com.MINIMAP)
