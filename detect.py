@@ -43,12 +43,12 @@ class CarRect:
 
 class DetectNet:
     # 路径
-    cur_dir = '/home/radar/Desktop/go-radar-go/'
+    cur_dir = '/home/radar/go-radar-go/'
     '''
     相机参数 size画面尺寸
            focal_len 焦距？
     '''
-    size = [1920, 886]
+    size = [1280, 720]
     focal_len = 3666.666504
     cameraMatrix = np.array(
         [[focal_len, 0, size[0] / 2],
@@ -61,7 +61,7 @@ class DetectNet:
     device_ = '0'
 
     # 权重
-    weights = cur_dir + 'yolov5/weights/last_yolov5s_0722.pt'
+    weights = cur_dir + 'yolov5/weights/best_DJI.pt'
     # 输入文件目录
     source = cur_dir + 'yolov5/inference/images'  # file/folder, 0 for webcam
     # 输出文件目录
@@ -282,13 +282,9 @@ class DetectNet:
 # 主函数开始啦
 if __name__ == "__main__":
     ####################################################################################
-    cur_dir = '/home/radar/Desktop/go-radar-go/'
+    cur_dir = '/home/radar/go-radar-go/'
     # 测试视频
-    video_in = cur_dir + 'data/t1.mp4'
-    # 标定小地图
-    map_dir = cur_dir + 'pnp/map2019.png'
-
-    lm = little_map(map_dir)
+    video_in = cur_dir + 'data/diff2.mp4'
 
     ############################调整相机和小地图大小#############################
     #获取摄像头信息
@@ -300,24 +296,9 @@ if __name__ == "__main__":
     cap_total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))    # 读取视频时长（帧总数）
 
     print("fps: {}\nsize: {}".format(cap_fps, cap_size))
-    print("lm size:({},{})".format(lm.map_width, lm.map_height))
     print("[INFO] {} total frames in video".format(cap_total))
 
     height, width = cap_width,cap_height
-    fixed_width = 800
-    fixed_height = 0
-    #小地图的大小
-    show_width = lm.map_width
-    show_height = lm.map_height
-
-    #越界保护，保证长方形形状
-    if cap_width > fixed_width:
-        fixed_height = int(fixed_width / width * height)
-    else:
-        fixed_width = width
-        fixed_height = height
-    resize_ratio = show_width / fixed_width
-
 
     ####################################################################################
 
@@ -334,13 +315,7 @@ if __name__ == "__main__":
     while True:
         ret, frame = cap.read()  # BGR
         if ret == True:
-            ####你们应该不需要这么做rotate my video 因为视频是歪的= =
-            height, width = frame.shape[:2]
-            if height > width:
-                img_src = rotate_bound(frame, -90)  #
-            else:
-                img_src = frame  #
-            img_src = cv2.resize(img_src, (int(fixed_width), int(fixed_height)))
+            img_src = frame  
 
             ########################计时 核心过程！########################
             outputs, bbox_vxvy = dnet.detect(img_src)
@@ -351,10 +326,6 @@ if __name__ == "__main__":
                 bbox_tlwh = []
                 bbox_xyxy = outputs[:, :4]
                 identities = outputs[:, 4]
-                # 得到角点信息
-                bbox_clockwise = dnet.getCornerPoints(bbox_xyxy)
-                # 计算每个目标的偏转角度与距离
-                tvec, angels, distance = dnet.get3Dposition(bbox_clockwise)
             #############################################################
 
             armor_color = getArmorColor(img_src, bbox_xyxy)
@@ -371,22 +342,17 @@ if __name__ == "__main__":
                 motion_show = []
                 bbox_vxvy_len = len(bbox_vxvy[0])
                 for j in range(len(bbox_xyxy[i])):
-                    bbox_show.append(bbox_xyxy[i, j] * resize_ratio)
+                    bbox_show.append(bbox_xyxy[i, j])
                     if j < bbox_vxvy_len:
-                        motion_show.append(bbox_vxvy[i, j] * resize_ratio)
+                        motion_show.append(bbox_vxvy[i, j])
                 bbox_xyxy_show.append(bbox_show)
                 bbox_vxvy_show.append(motion_show)
 
             # 打印到相机图
-            for_show = cv2.resize(img_src, (show_width, show_height))
-            for_show = draw_boxes(for_show, bbox_xyxy_show, angels, distance, tvec, identities)
-
-            # 在小地图上显示
-            center = getRectCenterpoint(bbox_xyxy_show)
-            cur_pic = showLittleMap(lm, center, bbox_vxvy_show, identities, armor_color)
+            for_show = img_src
+            for_show = draw_boxes(for_show, bbox_xyxy_show, armor_color, identities)
             #############################################################
 
-            cv.imshow('map', cur_pic)
             cv2.imshow("for_show", for_show)
             # out_2.write(cur_pic)
             cv2.waitKey(1)

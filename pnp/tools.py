@@ -40,50 +40,44 @@ def getArmorColor(raw_frame,rects):
     从机器人目标检测中筛选出所有蓝色方机器人目标
     :param rects: rects[0]=x_center, rects[1]=y_center, rects[2]=width, rects[3]=height
            raw_frame: 摄像头拍摄的原图
-    :return: red_armour: 红色机器人目标所在的rects
+    :return: armour_color: 机器人目标对应list的颜色
     '''
     Red = 1
     Blue = 2
     Others = 3
+    kernel = cv.getStructuringElement(cv.MORPH_RECT, (5, 5))
 
     hsv = cv.cvtColor(raw_frame, cv.COLOR_BGR2HSV)
     #对原图处理 保留蓝色
     frame_blue = cv.inRange(hsv,(100, 43 , 46),(124, 255, 255))
     #对原图处理 保留红色
-    frame_red = cv.inRange(hsv,(156,43,46),(180, 255, 255))
-    # #对原图处理 保留蓝色
-    # frame_blue = cv.inRange(hsv,(130, 100, 0),(255, 255, 65))
-    # #对原图处理 保留红色
-    # frame_red = cv.inRange(hsv,(0,0,140),(70, 70, 255))
+    frame_red1 = cv.inRange(hsv,(0,43,46),(10, 255, 255))
+    frame_red2 = cv.inRange(hsv,(156,43,46),(180, 255, 255))
+    frame_red = cv.bitwise_or(frame_red1, frame_red2)  # 获得融合的红色
 
-    # cv.imshow("frame_blue",frame_blue)
-    # cv.imshow("frame_red",frame_red)
+    frame_blue = cv.morphologyEx(frame_blue, cv.MORPH_CLOSE, kernel)  # 闭运算
+    frame_blue = cv.morphologyEx(frame_blue, cv.MORPH_OPEN, kernel)  # 开运算
+
+    frame_red = cv.morphologyEx(frame_red, cv.MORPH_CLOSE, kernel)  # 闭运算
+    frame_red = cv.morphologyEx(frame_red, cv.MORPH_OPEN, kernel)  # 开运算
+
+    cv.imshow("frame_blue",frame_blue)
+    cv.imshow("frame_red",frame_red)
 
     armor_color = []
 
-    threshold = 100
-
     for rect in rects:
         start_x,start_y,end_x,end_y = [int(i) for i in rect]
+        red_rect = frame_red[start_x:end_x, start_y:end_y]
+        blue_rect = frame_blue[start_x:end_x, start_y:end_y]
 
-        blue_count = 0
-        red_count = 0
-        # start_x=rect[0]-rects[2]/2
-        # end_x=rect[0]+rects[2]/2
-        #
-        # start_y=rect[1]-rects[3]/2
-        # end_y=rect[1]+rects[3]/2
+        cnts1, hierarchy1 = cv.findContours(red_rect, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)  # 轮廓检测 红色
+        cnts2, hierarchy2 = cv.findContours(blue_rect, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)  # 轮廓检测 蓝色
 
-        for x in range(start_x, end_x):
-            for y in range(start_y, end_y):
-                if frame_blue[y][x] != 0:
-                    blue_count = blue_count+1
-                if frame_red[y][x] != 0:
-                    red_count = red_count+1
 
-        if (blue_count > threshold) and (blue_count > red_count):
+        if len(cnts1) < len(cnts2):
             armor_color.append(Blue)
-        elif(red_count > threshold) and (red_count > blue_count):
+        elif len(cnts1) > len(cnts2):
             armor_color.append(Red)
         else:
             armor_color.append(Others)
