@@ -60,20 +60,21 @@ def getArmorColor(raw_frame,rects):
 
     frame_red = cv.morphologyEx(frame_red, cv.MORPH_CLOSE, kernel)  # 闭运算
     frame_red = cv.morphologyEx(frame_red, cv.MORPH_OPEN, kernel)  # 开运算
-
-    cv.imshow("frame_blue",frame_blue)
-    cv.imshow("frame_red",frame_red)
-
+    '''
+    cv.imshow("red", frame_red)
+    cv.imshow("blue", frame_blue)
+    '''
     armor_color = []
 
     for rect in rects:
         start_x,start_y,end_x,end_y = [int(i) for i in rect]
-        red_rect = frame_red[start_x:end_x, start_y:end_y]
-        blue_rect = frame_blue[start_x:end_x, start_y:end_y]
+        #  值得注意的是x和y的像素坐标是相反的
+        red_rect = frame_red[start_y:end_y, start_x:end_x]
+        blue_rect = frame_blue[start_y:end_y, start_x:end_x]
 
-        cnts1, hierarchy1 = cv.findContours(red_rect, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)  # 轮廓检测 红色
-        cnts2, hierarchy2 = cv.findContours(blue_rect, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)  # 轮廓检测 蓝色
-
+        # 通过对应颜色的轮廓数量判定
+        cnts1, _ = cv.findContours(red_rect, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)  # 轮廓检测 红色
+        cnts2, _ = cv.findContours(blue_rect, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)  # 轮廓检测 蓝色
 
         if len(cnts1) < len(cnts2):
             armor_color.append(Blue)

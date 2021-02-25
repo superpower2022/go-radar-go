@@ -84,7 +84,7 @@ class DeepSort(object):
         if len(tl_br_id) > 0:
             tl_br_id = np.stack(tl_br_id,axis=0)
             vx_vy = np.stack(vx_vy, axis=0)
-        return tl_br_id,vx_vy
+        return tl_br_id, vx_vy
 
 
     """

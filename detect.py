@@ -43,7 +43,7 @@ class CarRect:
 
 class DetectNet:
     # 路径
-    cur_dir = '/home/radar/go-radar-go/'
+    cur_dir = '/home/congtsang/go-radar-go/'
     '''
     相机参数 size画面尺寸
            focal_len 焦距？
@@ -80,7 +80,7 @@ class DetectNet:
 
     os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-    def __init__(self):
+    def __init__(self, name='Radar', k_size=5):
         # Initialize 找GPU
         self.device = torch_utils.select_device(self.device_)
         self.half = self.device.type != 'cpu'  # half precision only supported on CUDA
@@ -102,6 +102,149 @@ class DetectNet:
         self.my_deepsort.device = self.device
 
         self.car_rects = []
+
+        #  FrameDiff
+        self.name = name
+        self.nms_threshold = 0  #  控制窗口交叠面积小于threshold的那些窗口，0表示保留非重叠窗口
+        self.es = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k_size, k_size))
+        self.frame_num = 0
+        self.previous = []
+        
+    ###################-FrameDiff-######################
+
+    def catch_video(self, img_src, k_size=5, iterations=1, threshold=5, offset_frame=1, min_area=4000,
+                    show_test=False,
+                    enhance=True):
+        """
+        :param img_src: 图片帧
+        :param k_size: 中值滤波的滤波器大小
+        :param iterations: 腐蚀+膨胀的次数
+        :param threshold: 二值化阙值
+        :param offset_frame: 计算帧差图时的帧数差
+        :param min_area: 目标的最小面积
+        :param show_test: 是否显示二值化图片
+        :param enhance: 开启腐蚀和膨胀
+        :return: boundingBoxes [x_Ltop, y_Ltop, x_Rbottom, y_Rbottom, id=-1]
+        """
+        if not offset_frame > 0:
+            raise Exception('offset_frame must > 0')
+
+        frame = img_src
+
+        if self.frame_num < offset_frame:
+            value = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            self.previous.append(value)
+            self.frame_num += 1
+
+        #  转化为灰度图
+        raw = frame.copy()
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        gray = cv2.absdiff(gray, self.previous[0])
+        gray = cv2.medianBlur(gray, k_size)
+
+        #  二值化处理
+        ret, mask = cv2.threshold(gray, threshold, 255, cv2.THRESH_BINARY)
+        #  膨胀与腐蚀
+        if enhance:
+            mask = cv2.dilate(mask, self.es, iterations)
+            mask = cv2.erode(mask, self.es, iterations)
+
+        #  寻找运动白块的轮廓
+        cnts, _ = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        #  非极大值抑制并返回boxes
+        bounds = self.nms_cnts(cnts, mask, min_area)
+
+        boxes = []
+        for box in bounds:
+            x, y, w, h = box
+            boxes.append(np.array([x, y, x+w, y+h, -1], dtype=np.int))
+
+        if len(boxes) > 0:
+            boxes = np.stack(boxes,axis=0)
+
+        #  显示box和二值化的图片
+        if show_test:
+            for box in bounds:
+                x, y, w, h = box
+                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+            cv2.imshow(self.name, frame)
+            cv2.imshow(self.name + '_frame', mask)  # 边界
+        
+        value = cv2.cvtColor(raw, cv2.COLOR_BGR2GRAY)
+        self.previous = self.pop(self.previous, value)
+        '''
+        cv2.waitKey(1)
+        if cv2.getWindowProperty(self.name, cv2.WND_PROP_AUTOSIZE) < 1:
+            # 点x退出
+            break
+        if show_test and cv2.getWindowProperty(self.name + '_frame', cv2.WND_PROP_AUTOSIZE) < 1:
+            # 点x退出
+            break
+        '''
+        return boxes
+
+    def nms_cnts(self, cnts, mask, min_area):
+        bounds = [cv2.boundingRect(c) for c in cnts if cv2.contourArea(c) > min_area]
+
+        if len(bounds) == 0:
+            return []
+
+        scores = [self.cal_ratio(b, mask) for b in bounds]
+        bounds = np.array(bounds)
+        scores = np.expand_dims(np.array(scores), axis=-1)
+        keep = self.nms_cpu(np.hstack([bounds, scores]), self.nms_threshold)
+        return bounds[keep]
+
+    def cal_ratio(self, bound, mask):
+        x, y, w, h = bound
+        area = mask[y:y + h, x:x + w]
+        pos = area > 0 + 0
+        #  box内所有白色点值占box像素的比率
+        score = np.sum(pos) / (w * h)
+        return score
+
+    def nms_cpu(self, dets, thresh):
+        #  (x1,y1), (x2,y2)分别为左上点和右下点的列表[]
+        y1 = dets[:, 1]
+        x1 = dets[:, 0]
+        y2 = y1 + dets[:, 3]
+        x2 = x1 + dets[:, 2]
+
+        scores = dets[:, 4]  # bbox打分
+        areas = (x2 - x1 + 1) * (y2 - y1 + 1)
+        # 分数从大到小排列，取index
+        order = scores.argsort()[::-1]
+        # keep为最后保留的边框
+        keep = []
+
+        while order.size > 0:
+            # order[0]是当前分数最大的窗口，肯定保留
+            i = order[0]
+            keep.append(i)
+            # 计算窗口i与其他所有窗口的交叠部分的面积
+            xx1 = np.maximum(x1[i], x1[order[1:]])
+            yy1 = np.maximum(y1[i], y1[order[1:]])
+            xx2 = np.minimum(x2[i], x2[order[1:]])
+            yy2 = np.minimum(y2[i], y2[order[1:]])
+
+            w = np.maximum(0.0, xx2 - xx1 + 1)
+            h = np.maximum(0.0, yy2 - yy1 + 1)
+            inter = w * h
+            # 交/并得到iou值
+            ovr = inter / (areas[i] + areas[order[1:]] - inter)
+            # inds为所有与窗口i的iou值小于threshold值的窗口的index
+            inds = np.where(ovr <= thresh)[0]
+            # order里面只保留与窗口i交叠面积小于threshold的那些窗口，由于ovr长度比order长度少1(不包含i)，所以inds+1对应到保留的窗口
+            order = order[inds + 1]
+        return keep
+
+    def pop(self, l, value):
+        l.pop(0)
+        l.append(value)
+        return l
+
+    ###################-FrameDiff-######################
 
     def adjustImgSize(self, img_src):
         '''
@@ -139,7 +282,7 @@ class DetectNet:
         img = self.adjustImgSize(img_src)
         # inference 推断
         pred = self.models(img)[0]
-        # 极大值抑制
+        # 非极大值抑制
         pred = non_max_suppression(pred, self.conf_thres, self.iou_thres, self.classes, self.agnostic)
 
         bbox_xcycwh = []
@@ -174,11 +317,17 @@ class DetectNet:
         ########################计时 核心过程！########################
         # yolo目标检测
         bbox_xcycwh, cls_conf, cls_ids = self.detectPerFrame(img_src)
+        frameBoxes = self.catch_video(img_src)
 
         # 目标跟踪 output = [x1,y1,x2,y2,track_id]
         if len(bbox_xcycwh) != 0:
             outputs, bbox_vxvy = self.my_deepsort.update(bbox_xcycwh, cls_conf, img_src)
 
+        
+        #  去除frameDiff识别出来的冗余box，优先保留yolo
+        outputs = self.rm_excess(outputs, frameBoxes)
+        '''
+        #  带预测速度
         for i in range(len(outputs)):
             output, vxvy = outputs[i], bbox_vxvy[i]
             car_rect = CarRect()
@@ -186,6 +335,15 @@ class DetectNet:
             car_rect.right_down = output[2:4]
             car_rect.track_id = output[4]
             car_rect.velocity = vxvy
+            self.car_rects.append(car_rect)
+        '''
+        #  无预测速度
+        for i in range(len(outputs)):
+            output = outputs[i]
+            car_rect = CarRect()
+            car_rect.left_top = output[0:2]
+            car_rect.right_down = output[2:4]
+            car_rect.track_id = output[4]
             self.car_rects.append(car_rect)
 
         bbox_xyxy = []
@@ -198,6 +356,57 @@ class DetectNet:
             self.car_rects[i].color_id = armor_color[i]
         #############################################################
         return outputs, bbox_vxvy
+
+    def rm_excess(self, yoloBoxes, frameBoxes):
+        """
+        去除frameDiff识别出来的冗余box
+        :param yoloBoxes: [x_Ltop, y_Ltop, x_Rbottom, y_Rbottom, track_id]
+        :param frameBoxes: [x_Ltop, y_Ltop, x_Rbottom, y_Rbottom, track_id]
+        :return: keep: [x_Ltop, y_Ltop, x_Rbottom, y_Rbottom, track_id]
+        """
+        keep = []
+        for yolobox in yoloBoxes:
+            keep.append(yolobox)
+        for framebox in frameBoxes:
+            keep.append(framebox)
+
+        for yolobox in yoloBoxes:
+            for framebox in frameBoxes:
+                iou = self.compute_IOU(yolobox[0:4], framebox[0:4])
+                if iou > 0:
+                    #  去除相交
+                    indx = -1
+                    for i,b in enumerate(keep):
+                        if all(b == framebox):
+                            indx = i
+                    if indx != -1:
+                        keep.pop(indx)
+
+        if len(keep) > 0:
+            keep = np.stack(keep, axis=0)
+
+        return keep
+
+    def compute_IOU(self, rec1, rec2):
+        """
+        计算两个矩形框的交并比。
+        :param rec1: (x0,y0,x1,y1)      (x0,y0)代表矩形左上的顶点，（x1,y1）代表矩形右下的顶点。下同。
+        :param rec2: (x0,y0,x1,y1)
+        :return: 交并比IOU.
+        """
+        left_column_max  = max(rec1[0],rec2[0])
+        right_column_min = min(rec1[2],rec2[2])
+        up_row_max       = max(rec1[1],rec2[1])
+        down_row_min     = min(rec1[3],rec2[3])
+        #两矩形无相交区域的情况
+        if left_column_max>=right_column_min or down_row_min<=up_row_max:
+            return 0
+        # 两矩形有相交区域的情况
+        else:
+            S1 = (rec1[2]-rec1[0])*(rec1[3]-rec1[1])
+            S2 = (rec2[2]-rec2[0])*(rec2[3]-rec2[1])
+            S_cross = (down_row_min-up_row_max)*(right_column_min-left_column_max)
+            return S_cross/(S1+S2-S_cross)
 
     def PNPsolver(self, target_rect):
         '''
@@ -282,9 +491,9 @@ class DetectNet:
 # 主函数开始啦
 if __name__ == "__main__":
     ####################################################################################
-    cur_dir = '/home/radar/go-radar-go/'
+    cur_dir = '/home/congtsang/go-radar-go/'
     # 测试视频
-    video_in = cur_dir + 'data/diff2.mp4'
+    video_in = cur_dir + 'data/t3.mp4'
 
     ############################调整相机和小地图大小#############################
     #获取摄像头信息
@@ -338,15 +547,9 @@ if __name__ == "__main__":
             for i in range(len(outputs)):
                 # 打印出具体位置
                 bbox_show = []
-                # 打印出运动状态（根据kalmanfilter得到的速度）
-                motion_show = []
-                bbox_vxvy_len = len(bbox_vxvy[0])
                 for j in range(len(bbox_xyxy[i])):
                     bbox_show.append(bbox_xyxy[i, j])
-                    if j < bbox_vxvy_len:
-                        motion_show.append(bbox_vxvy[i, j])
                 bbox_xyxy_show.append(bbox_show)
-                bbox_vxvy_show.append(motion_show)
 
             # 打印到相机图
             for_show = img_src

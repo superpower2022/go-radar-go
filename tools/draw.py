@@ -95,7 +95,6 @@ def draw_boxes(img, bbox, angles, distance, tvec, identities=None, offset=(0, 0)
 
 def draw_boxes(img, bbox, armor_color, identities=None, offset=(0, 0)):
     """
-
     Parameters
     ----------
     img  :原图
@@ -119,7 +118,7 @@ def draw_boxes(img, bbox, armor_color, identities=None, offset=(0, 0)):
         elif armor_color[i] == 2: # BLUE
             color = (255,0,0)
         else:
-            color = (255,255,255)
+            color = (0,0,0)
 
         label = '{}{:d}'.format("", id)
         t_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_PLAIN, 2, 2)[0]
