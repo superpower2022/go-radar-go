@@ -43,7 +43,7 @@ class CarRect:
 
 class DetectNet:
     # 路径
-    cur_dir = '/home/congtsang/go-radar-go/'
+    cur_dir = '/home/radar/Desktop/go-radar-go/'
     '''
     相机参数 size画面尺寸
            focal_len 焦距？
@@ -317,6 +317,7 @@ class DetectNet:
         ########################计时 核心过程！########################
         # yolo目标检测
         bbox_xcycwh, cls_conf, cls_ids = self.detectPerFrame(img_src)
+        # 帧差法
         frameBoxes = self.catch_video(img_src)
 
         # 目标跟踪 output = [x1,y1,x2,y2,track_id]
@@ -491,9 +492,9 @@ class DetectNet:
 # 主函数开始啦
 if __name__ == "__main__":
     ####################################################################################
-    cur_dir = '/home/congtsang/go-radar-go/'
+    cur_dir = '/home/radar/Desktop/go-radar-go/'
     # 测试视频
-    video_in = cur_dir + 'data/t3.mp4'
+    video_in = cur_dir + 'data/t6.mp4'
 
     ############################调整相机和小地图大小#############################
     #获取摄像头信息
@@ -518,7 +519,6 @@ if __name__ == "__main__":
     angels = []
     distance = []
 
-    #
     dnet = DetectNet()
 
     while True:
@@ -555,7 +555,7 @@ if __name__ == "__main__":
             for_show = img_src
             for_show = draw_boxes(for_show, bbox_xyxy_show, armor_color, identities)
             #############################################################
-
+            for_show = cv2.resize(for_show, (1280, 720))
             cv2.imshow("for_show", for_show)
             # out_2.write(cur_pic)
             cv2.waitKey(1)

@@ -29,6 +29,9 @@ class Camera:
     MINIMAP = 0
     MOVING = 1
 
+    # Camera BrightNess
+    ZEDBRIGHTNESS = 4
+
     cur_dir = '/home/radar/Desktop/go-radar-go/'
 
     def __init__(self):
@@ -46,6 +49,9 @@ class Camera:
         if err != sl.ERROR_CODE.SUCCESS:
             exit(1)
 
+        # origin brightness 4
+        # Set Camera Brightness
+        self.zed.set_camera_settings(sl.VIDEO_SETTINGS.BRIGHTNESS, self.ZEDBRIGHTNESS)
         # Create and set RuntimeParameters after opening the camera
         self.runtime_parameters = sl.RuntimeParameters()
         self.runtime_parameters.sensing_mode = sl.SENSING_MODE.STANDARD  # Use STANDARD sensing mode
@@ -143,6 +149,22 @@ class Camera:
         self.message_positions = []
         self.message_auto_pos = []
 
+    # 一帧的图像的抓取
+    def step_capture(self):
+        # Retrieve left image
+        self.zed.retrieve_image(self.image_frame, sl.VIEW.LEFT)
+        # Retrieve depth map. Depth is aligned on the left image
+        self.zed.retrieve_measure(self.depth_frame, sl.MEASURE.DEPTH)
+        # Retrieve colored point cloud. Point cloud is aligned on the left image.
+        self.zed.retrieve_measure(self.point_cloud, sl.MEASURE.XYZRGBA)
+        # Get the data of the color frame and depth frame
+        self.color_image = self.image_frame.get_data()
+        self.color_image = cv2.cvtColor(self.color_image, cv2.COLOR_RGBA2RGB)           # (720, 1280, 3)
+        self.depth_image = self.depth_frame.get_data()
+
+        # reset
+        self.map_image = self.map_src.copy()
+
     def get_camera_xyz(self):
         err, self.world_coordinate = self.point_cloud.get_value(self.X, self.Y)
         print("x:", self.world_coordinate[0], " y:", self.world_coordinate[1], " z:", self.world_coordinate[2])
@@ -206,7 +228,11 @@ class Camera:
             right_down = car_rect.right_down
             ########################################
             center_point = (left_top + right_down) / 2
-            err, self.world_coordinate = self.point_cloud.get_value(int(center_point[0]), int(center_point[1]))
+            # err, self.world_coordinate = self.point_cloud.get_value(int(center_point[0]), int(center_point[1]))
+            tmp_point_cloud = self.point_cloud.get_data()
+            tmp_point_cloud[np.isnan(tmp_point_cloud)] = 0
+            self.world_coordinate = np.average(tmp_point_cloud[(right_down[1]+left_top[1])//2:(right_down[1]*5+left_top[1]*1)//6, (left_top[0]*2+right_down[0]*1)//3:(left_top[0]*1+right_down[0]*2)//3, :3].reshape([(left_top[1]-right_down[1])//3*(right_down[0]-left_top[0])//3, 3]), axis=0)
+            print("x:", self.world_coordinate[0], " y:", self.world_coordinate[1], " z:", self.world_coordinate[2])
             try:
                 self.trans_3d_to_map()
                 self.car_map_positions.append([self.MAP_LENGTH - self.map_y, self.map_x, car_rect.color_id])
@@ -249,23 +275,6 @@ class Camera:
     # 将移动位置发送给自动步兵
     def SendToAutoCar(self):
         self.communicator.send(self.message_auto_pos, self.MOVING)
-
-    # 一帧的图像的抓取
-    def step_capture(self):
-        # Retrieve left image
-        self.zed.retrieve_image(self.image_frame, sl.VIEW.LEFT)
-        # Retrieve depth map. Depth is aligned on the left image
-        self.zed.retrieve_measure(self.depth_frame, sl.MEASURE.DEPTH)
-        # Retrieve colored point cloud. Point cloud is aligned on the left image.
-        self.zed.retrieve_measure(self.point_cloud, sl.MEASURE.XYZRGBA)
-
-        # Get the data of the color frame and depth frame
-        self.color_image = self.image_frame.get_data()
-        self.color_image = cv2.cvtColor(self.color_image, cv2.COLOR_RGBA2RGB)           # (720, 1280, 3)
-        self.depth_image = self.depth_frame.get_data()
-
-        # reset
-        self.map_image = self.map_src.copy()
 
     # 残影，估计不使用
     def record_residual(self):

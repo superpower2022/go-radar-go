@@ -60,10 +60,12 @@ def getArmorColor(raw_frame,rects):
 
     frame_red = cv.morphologyEx(frame_red, cv.MORPH_CLOSE, kernel)  # 闭运算
     frame_red = cv.morphologyEx(frame_red, cv.MORPH_OPEN, kernel)  # 开运算
-    '''
-    cv.imshow("red", frame_red)
-    cv.imshow("blue", frame_blue)
-    '''
+    ''''''
+    re = cv.resize(frame_red, (1280, 720))
+    bl = cv.resize(frame_blue, (1280, 720))
+    cv.imshow("red", re)
+    cv.imshow("blue", bl)
+    ''''''
     armor_color = []
 
     for rect in rects:
