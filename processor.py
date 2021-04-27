@@ -67,7 +67,7 @@ class Processor(object):
         # pack the cars' position information into a list
         for i in range(len(self.car_rects)):
             color_id = self.car_rects[i].color_id
-            pos = [self.car_map_positions[i][0], self.car_map_positions[i][1]]
+            pos = [self.car_map_positions[i][0]/self.MAP_LENGTH, self.car_map_positions[i][1]/self.MAP_WIDTH]
             if color_id == self.FRIEND_COLOR:
                 friend_number += 1
                 friend_position.append(pos)
