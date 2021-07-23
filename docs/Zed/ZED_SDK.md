@@ -22,10 +22,10 @@ sudo apt-get -y install cuda
 
 - Run the ZED SDK installer.
 
-![image-20201220110320158](./Download and Install the ZED SDK.assets/image-20201220110320158.png)
+![image-20201220110320158](ZED_SDK.assets/image-20201220110320158.png)
 
 识别成功CUDA～
 
-![image-20201220110451842](./Download and Install the ZED SDK.assets/image-20201220110451842.png)
+![image-20201220110451842](ZED_SDK.assets/image-20201220110451842.png)
 
 成功完成安装，忙活到此完毕，简单庆祝，之后继续搬砖
