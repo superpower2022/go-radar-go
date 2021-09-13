@@ -63,8 +63,8 @@ def getArmorColor(raw_frame,rects):
     ''''''
     re = cv.resize(frame_red, (1280, 720))
     bl = cv.resize(frame_blue, (1280, 720))
-    cv.imshow("red", re)
-    cv.imshow("blue", bl)
+    #cv.imshow("red", re)
+    #cv.imshow("blue", bl)
     ''''''
     armor_color = []
 

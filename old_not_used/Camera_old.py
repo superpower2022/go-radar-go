@@ -32,7 +32,7 @@ class Camera:
     # Camera BrightNess
     ZEDBRIGHTNESS = 4
 
-    cur_dir = '/home/radar/Desktop/go-radar-go/'
+    cur_dir = '//'
 
     def __init__(self):
         # Create a Camera object

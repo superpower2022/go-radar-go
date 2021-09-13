@@ -1,0 +1,1 @@
+python /home/radar/Desktop/go-radar-go/main.py

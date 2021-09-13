@@ -318,7 +318,7 @@ class DetectNet:
         # yolo目标检测
         bbox_xcycwh, cls_conf, cls_ids = self.detectPerFrame(img_src)
         # 帧差法
-        frameBoxes = self.catch_video(img_src)
+        # frameBoxes = self.catch_video(img_src)
 
         # 目标跟踪 output = [x1,y1,x2,y2,track_id]
         if len(bbox_xcycwh) != 0:
@@ -326,7 +326,7 @@ class DetectNet:
 
         
         #  去除frameDiff识别出来的冗余box，优先保留yolo
-        outputs = self.rm_excess(outputs, frameBoxes)
+        # outputs = self.rm_excess(outputs, frameBoxes)
         '''
         #  带预测速度
         for i in range(len(outputs)):
@@ -557,7 +557,7 @@ if __name__ == "__main__":
             #############################################################
             for_show = cv2.resize(for_show, (1280, 720))
             cv2.imshow("for_show", for_show)
-            # out_2.write(cur_pic)
+            # # out_2.write(cur_pic)
             cv2.waitKey(1)
 
         else:
